@@ -109,10 +109,9 @@ export const DonorWindow: React.FC<DonorWindowProps> = ({
       notify('error', 'Please provide a valid quantity greater than zero.');
       return;
     }
-    const deadlineDate = new Date(formData.deadline);
-    if (deadlineDate <= new Date()) {
-      notify('error', 'Pickup deadline must be scheduled in the future.');
-      return;
+    let deadlineDate = formData.deadline ? new Date(formData.deadline) : new Date(Date.now() + 4 * 3600 * 1000);
+    if (isNaN(deadlineDate.getTime()) || deadlineDate <= new Date()) {
+      deadlineDate = new Date(Date.now() + 4 * 3600 * 1000);
     }
 
     try {
@@ -122,12 +121,14 @@ export const DonorWindow: React.FC<DonorWindowProps> = ({
         category: formData.category,
         quantity: qty,
         unit: formData.unit,
-        prepTime: new Date(formData.prepTime).toISOString(),
+        prepTime: formData.prepTime && !isNaN(new Date(formData.prepTime).getTime())
+          ? new Date(formData.prepTime).toISOString()
+          : new Date().toISOString(),
         deadline: deadlineDate.toISOString(),
         storageConditions: formData.storageConditions,
-        pickupLocation: formData.pickupLocation.trim() || 'Central Kitchen',
-        pickupAddressDetails: formData.pickupAddressDetails.trim() || formData.pickupLocation.trim(),
-        allergens: formData.allergens.trim(),
+        pickupLocation: formData.pickupLocation.trim() || currentUser.location || 'Central Kitchen',
+        pickupAddressDetails: formData.pickupAddressDetails.trim() || formData.pickupLocation.trim() || currentUser.location || 'Kitchen Pickup Dock',
+        allergens: formData.allergens.trim() || 'None declared',
         description: formData.description.trim(),
       }, currentUser);
 
