@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { WelcomePage } from './pages/WelcomePage';
+import { LoginPage } from './pages/LoginPage';
 import { Dashboard } from './pages/Dashboard';
 import { BrowseDonations } from './pages/BrowseDonations';
 import { DonorWindow } from './pages/DonorWindow';
@@ -18,13 +19,17 @@ import { DonationDetailsModal } from './components/DonationDetailsModal';
 import { ReportModal } from './components/ReportModal';
 import { Donation, DonationRequest, UserRole } from './types';
 import { api } from './services/api';
-import { HeartHandshake, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { HeartHandshake, ShieldCheck, CheckCircle2, Sparkles, ArrowRight } from 'lucide-react';
 
 function MainLayout() {
   const { currentUser, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>('welcome');
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
 
-  // Auth Modal State
+  // Welcome & Custom Login Page Flow for Unauthenticated Visitors
+  const [authFlowView, setAuthFlowView] = useState<'welcome' | 'login'>('welcome');
+  const [authRoleChoice, setAuthRoleChoice] = useState<UserRole>('donor');
+
+  // Auth Modal State (for in-app popups if needed)
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
   const [authModalRole, setAuthModalRole] = useState<UserRole>('donor');
@@ -147,13 +152,6 @@ function MainLayout() {
   return (
     <div className="min-h-screen bg-[#FFF8ED] text-[#373A36] flex flex-col justify-between selection:bg-[#8BAF92]/30 selection:text-[#344E41]">
       <div>
-        <Navbar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          onOpenCreateDonation={handleOpenCreate}
-          onOpenAuth={handleOpenAuth}
-        />
-
         {/* Global Toast */}
         {toastMessage && (
           <div className="fixed bottom-6 right-6 z-50 bg-[#344E41] text-[#FFF8ED] px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-bottom-2">
@@ -162,72 +160,159 @@ function MainLayout() {
           </div>
         )}
 
-        {/* Main Content Area */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          {activeTab === 'welcome' && (
-            <WelcomePage
-              onOpenSignIn={(role) => handleOpenAuth('signin', role || 'donor')}
-              onOpenSignUp={(role) => handleOpenAuth('signup', role || 'donor')}
-              onExploreSurplus={() => setActiveTab(isAuthenticated && currentUser.role === 'donor' ? 'donor' : 'browse')}
-            />
-          )}
+        {/* 1. UNAUTHENTICATED FLOW: Welcome Page loads first, 'Get started' animates to Custom Login Page */}
+        {!isAuthenticated ? (
+          <div>
+            {/* Top Minimal Welcome Gateway Header */}
+            <header className="bg-[#344E41] text-[#FFF8ED] text-xs py-2.5 px-4 sm:px-8 border-b border-[#344E41]/30">
+              <div className="max-w-7xl mx-auto flex items-center justify-between">
+                <div 
+                  onClick={() => setAuthFlowView('welcome')}
+                  className="flex items-center gap-2.5 cursor-pointer"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-[#8BAF92] text-[#344E41] flex items-center justify-center font-bold">
+                    <HeartHandshake className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="font-bold text-sm text-white tracking-tight">MealMitra</span>
+                  <span className="text-[11px] text-[#FFF8ED]/70 hidden sm:inline">— “Share More. Waste Less.”</span>
+                </div>
 
-          {/* DASHBOARD: Integrated user profile and role-tailored view for all users */}
-          {activeTab === 'dashboard' && (
-            <Dashboard
-              onNavigate={setActiveTab}
-              onRequestDonation={handleRequestDonation}
-              onViewDonationDetails={handleViewDetails}
+                <div className="flex items-center gap-2">
+                  {authFlowView === 'welcome' ? (
+                    <button
+                      onClick={() => setAuthFlowView('login')}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#8BAF92] hover:bg-[#789d7f] text-[#344E41] font-bold text-xs transition-all shadow-xs cursor-pointer"
+                    >
+                      <span>Sign In / Register</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setAuthFlowView('welcome')}
+                      className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-medium text-xs transition-all cursor-pointer border border-white/20"
+                    >
+                      ← Welcome Home
+                    </button>
+                  )}
+                </div>
+              </div>
+            </header>
+
+            {/* Animated Transition Container between Welcome Page and Login Page */}
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+              {authFlowView === 'welcome' ? (
+                <div className="transition-all duration-500 ease-in-out animate-in fade-in zoom-in-95">
+                  <WelcomePage
+                    onGetStarted={() => {
+                      setAuthFlowView('login');
+                    }}
+                    onOpenSignIn={(role) => {
+                      setAuthRoleChoice(role || 'donor');
+                      setAuthFlowView('login');
+                    }}
+                    onOpenSignUp={(role) => {
+                      setAuthRoleChoice(role || 'donor');
+                      setAuthFlowView('login');
+                    }}
+                    onExploreSurplus={() => {
+                      setAuthRoleChoice('recipient');
+                      setAuthFlowView('login');
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="transition-all duration-500 ease-in-out animate-in fade-in slide-in-from-right-4">
+                  <LoginPage
+                    onBackToWelcome={() => setAuthFlowView('welcome')}
+                    initialRole={authRoleChoice}
+                    onSuccess={() => {
+                      showToast('Authentication successful! Welcome to MealMitra.');
+                      setActiveTab('dashboard');
+                    }}
+                  />
+                </div>
+              )}
+            </main>
+          </div>
+        ) : (
+          /* 2. AUTHENTICATED FLOW: Full platform features with verified session */
+          <div>
+            <Navbar
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
               onOpenCreateDonation={handleOpenCreate}
               onOpenAuth={handleOpenAuth}
             />
-          )}
 
-          {/* DEDICATED DONOR WINDOW:
-              For authenticated food donors: surplus posting form, inbound requests, and live CRUD operations */}
-          {activeTab === 'donor' && (
-            <DonorWindow
-              onOpenMessages={handleOpenMessages}
-              onEditDonation={handleEditDonation}
-              onNavigate={setActiveTab}
-            />
-          )}
+            {/* Main Content Area */}
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+              {activeTab === 'welcome' && (
+                <WelcomePage
+                  onGetStarted={() => setActiveTab(currentUser.role === 'donor' ? 'donor' : 'dashboard')}
+                  onOpenSignIn={(role) => handleOpenAuth('signin', role || 'donor')}
+                  onOpenSignUp={(role) => handleOpenAuth('signup', role || 'donor')}
+                  onExploreSurplus={() => setActiveTab(currentUser.role === 'donor' ? 'donor' : 'browse')}
+                />
+              )}
 
-          {/* AVAILABLE LISTINGS / BROWSE: Recipient organizations and community view donor listings */}
-          {activeTab === 'browse' && (
-            <BrowseDonations
-              onRequestDonation={handleRequestDonation}
-              onViewDonationDetails={handleViewDetails}
-              onEditDonation={handleEditDonation}
-              onDeleteDonation={handleDeleteDonation}
-              onReportDonation={handleReportDonation}
-              onOpenCreateDonation={handleOpenCreate}
-            />
-          )}
+              {/* DASHBOARD: Integrated user profile and role-tailored view for all users */}
+              {activeTab === 'dashboard' && (
+                <Dashboard
+                  onNavigate={setActiveTab}
+                  onRequestDonation={handleRequestDonation}
+                  onViewDonationDetails={handleViewDetails}
+                  onOpenCreateDonation={handleOpenCreate}
+                  onOpenAuth={handleOpenAuth}
+                />
+              )}
 
-          {(!isAuthenticated || currentUser.role !== 'donor') && activeTab === 'my-listings' && (
-            <MyListings
-              onOpenCreateDonation={handleOpenCreate}
-              onEditDonation={handleEditDonation}
-              onOpenMessages={handleOpenMessages}
-            />
-          )}
+              {/* DEDICATED DONOR WINDOW:
+                  For authenticated food donors: surplus posting form, inbound requests, and live CRUD operations */}
+              {activeTab === 'donor' && (
+                <DonorWindow
+                  onOpenMessages={handleOpenMessages}
+                  onEditDonation={handleEditDonation}
+                  onNavigate={setActiveTab}
+                />
+              )}
 
-          {activeTab === 'my-requests' && (
-            <MyRequests
-              onOpenMessages={handleOpenMessages}
-              onExploreDonations={() => setActiveTab(isAuthenticated && currentUser.role === 'donor' ? 'donor' : 'browse')}
-            />
-          )}
+              {/* AVAILABLE LISTINGS / BROWSE: Recipient organizations and community view donor listings */}
+              {activeTab === 'browse' && (
+                <BrowseDonations
+                  onRequestDonation={handleRequestDonation}
+                  onViewDonationDetails={handleViewDetails}
+                  onEditDonation={handleEditDonation}
+                  onDeleteDonation={handleDeleteDonation}
+                  onReportDonation={handleReportDonation}
+                  onOpenCreateDonation={handleOpenCreate}
+                />
+              )}
 
-          {activeTab === 'volunteer' && (
-            <VolunteerDispatch onOpenMessages={handleOpenMessages} />
-          )}
+              {currentUser.role !== 'donor' && activeTab === 'my-listings' && (
+                <MyListings
+                  onOpenCreateDonation={handleOpenCreate}
+                  onEditDonation={handleEditDonation}
+                  onOpenMessages={handleOpenMessages}
+                />
+              )}
 
-          {(!isAuthenticated || currentUser.role !== 'donor') && activeTab === 'organizations' && <OrganizationsPage />}
+              {activeTab === 'my-requests' && (
+                <MyRequests
+                  onOpenMessages={handleOpenMessages}
+                  onExploreDonations={() => setActiveTab(currentUser.role === 'donor' ? 'donor' : 'browse')}
+                />
+              )}
 
-          {activeTab === 'safety' && <FoodSafetyPage />}
-        </main>
+              {activeTab === 'volunteer' && (
+                <VolunteerDispatch onOpenMessages={handleOpenMessages} />
+              )}
+
+              {currentUser.role !== 'donor' && activeTab === 'organizations' && <OrganizationsPage />}
+
+              {activeTab === 'safety' && <FoodSafetyPage />}
+            </main>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

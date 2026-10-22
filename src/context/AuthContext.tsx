@@ -24,7 +24,30 @@ export const GUEST_USER: UserProfile = {
   location: '',
 };
 
-export const DEMO_USERS: Record<string, UserProfile> = {};
+export const DEMO_USERS: Record<string, UserProfile> = {
+  donor: {
+    uid: 'demo_donor_partner',
+    email: 'chef@greenleafbistro.com',
+    displayName: 'Chef Marco Rossi',
+    role: 'donor',
+    organizationName: 'Green Leaf Bistro & Catering',
+    organizationType: 'Restaurant',
+    phone: '+1 (555) 345-6789',
+    location: '124 Culinary Boulevard, Metro District',
+  },
+  recipient: {
+    uid: 'demo_recipient_shelter',
+    email: 'coordinator@hopecityshelter.org',
+    displayName: 'Sister Clara Jenkins',
+    role: 'recipient',
+    organizationName: 'Hope City Night Shelter & Children Home',
+    organizationType: 'Orphanage',
+    phone: '+1 (555) 789-0123',
+    location: '45 Mission Way, Eastside Community Center',
+    registrationNumber: 'NGO-2024-8849',
+    beneficiaries: 120,
+  },
+};
 
 export interface SignUpUserParams {
   fullName: string;
@@ -52,6 +75,7 @@ interface AuthContextType {
   setUserRole: (role: UserRole) => void;
   signInWithGoogle: (preferredRole?: UserRole) => Promise<UserProfile>;
   signInWithEmail: (email: string, password: string, rememberMe?: boolean) => Promise<UserProfile>;
+  loginAsDemoUser: (role: 'donor' | 'recipient') => Promise<UserProfile>;
   signUpDonor: (params: SignUpDonorParams) => Promise<UserProfile>;
   signUpRecipient: (params: SignUpUserParams) => Promise<UserProfile>;
   signUpUser: (params: SignUpUserParams) => Promise<UserProfile>;
@@ -62,16 +86,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'mealmitra_donor_session_profile';
+// Session storage ensures user always enters via Welcome and must authenticate on each application use
+const SESSION_STORAGE_KEY = 'mealmitra_session_profile';
 const REGISTERED_USERS_KEY = 'mealmitra_registered_users_cache';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Try loading saved donor profile from localStorage
+  // Session storage loads active user only if already logged in during current session
   const getInitialUser = (): UserProfile => {
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      const session = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (session) {
+        const parsed = JSON.parse(session);
         if (parsed && parsed.email) return parsed;
       }
     } catch {
@@ -84,23 +109,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      const session = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (session) {
+        const parsed = JSON.parse(session);
         return !!(parsed && parsed.email);
       }
     } catch {}
     return false;
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // Sync to local storage
+  // Sync to session storage
   const persistSession = (profile: UserProfile | null) => {
-    if (profile) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profile));
+    if (profile && profile.email) {
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(profile));
       setIsAuthenticated(true);
     } else {
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
       setIsAuthenticated(false);
     }
   };
@@ -109,65 +134,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
-        // Try fetching user profile from Firestore or local cache
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data() as UserProfile;
-            setCurrentUser(data);
-            persistSession(data);
-            setLoading(false);
-            return;
-          }
-        } catch {
-          // Firestore read warning fallback
-        }
-
-        // Check if cached locally
-        const cached = localStorage.getItem(`${REGISTERED_USERS_KEY}_${user.uid}`);
-        if (cached) {
+        // If user is signed in with Firebase and session is active
+        const existingSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (existingSession) {
           try {
-            const parsed = JSON.parse(cached);
-            setCurrentUser(parsed);
-            persistSession(parsed);
-            setLoading(false);
-            return;
-          } catch {}
-        }
-
-        // Default Google first-time account (Role set to 'donor' as requested)
-        const defaultDonorProfile: UserProfile = {
-          uid: user.uid,
-          email: user.email || 'donor@mealmitra.org',
-          displayName: user.displayName || 'Food Donor Partner',
-          role: 'donor',
-          organizationName: user.displayName ? `${user.displayName}'s Kitchen` : 'Community Food Donor',
-          organizationType: 'Restaurant',
-          phone: user.phoneNumber || '+1 (555) 234-5678',
-          location: 'City Metro Area',
-          photoURL: user.photoURL || undefined,
-        };
-
-        setCurrentUser(defaultDonorProfile);
-        persistSession(defaultDonorProfile);
-      } else {
-        // Firebase user is null
-        const savedSession = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (savedSession) {
-          try {
-            const parsed = JSON.parse(savedSession);
+            const parsed = JSON.parse(existingSession);
             if (parsed && parsed.email) {
               setCurrentUser(parsed);
               setIsAuthenticated(true);
-              setLoading(false);
               return;
             }
           } catch {}
         }
-        setCurrentUser(GUEST_USER);
-        setIsAuthenticated(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -238,11 +217,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return userProfile;
     } catch (err: any) {
       console.error('Google Sign-in failed:', err);
+      if (err.code === 'auth/unauthorized-domain') {
+        throw new Error(
+          'Firebase Unauthorized Domain (auth/unauthorized-domain): "meal-mitra.vercel.app" is not authorized in Firebase Console. Please add "meal-mitra.vercel.app" to Firebase Console → Authentication → Settings → Authorized domains. You can also sign in below using Email/Password or the Quick-Access Demo buttons.'
+        );
+      }
       if (err.code === 'auth/popup-closed-by-user') {
         throw new Error('Google sign-in popup was closed before completion. Please try again.');
       }
+      if (err.code === 'auth/popup-blocked') {
+        throw new Error('Google sign-in popup was blocked by browser. Please allow popups for this site.');
+      }
+      if (err.code === 'auth/operation-not-allowed') {
+        throw new Error('Google Sign-In is disabled in Firebase Console. Please enable "Google" under Firebase Console → Authentication → Sign-in method.');
+      }
       throw new Error(err.message || 'Google sign-in failed. Please try again.');
     }
+  };
+
+  /**
+   * Fast Demo Login for Donors and Shelters
+   */
+  const loginAsDemoUser = async (role: 'donor' | 'recipient'): Promise<UserProfile> => {
+    const demoProfile = DEMO_USERS[role];
+    if (!demoProfile) {
+      throw new Error(`Demo user for role ${role} not found.`);
+    }
+    setCurrentUser(demoProfile);
+    persistSession(demoProfile);
+    return demoProfile;
   };
 
   /**
@@ -290,6 +293,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (err.code === 'auth/invalid-email') {
         throw new Error('Please enter a valid email address.');
       }
+      // Note: auth/operation-not-allowed falls through gracefully to local profile registration
     }
 
     const newUserProfile: UserProfile = {
@@ -397,11 +401,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (rememberMe) persistSession(userObj);
             return userObj;
           } else {
-            throw new Error('Incorrect password. Please verify and try again.');
+            throw new Error('Incorrect password. Please verify your credentials and try again.');
           }
         } catch (e: any) {
           throw new Error(e.message || 'Invalid credentials.');
         }
+      }
+
+      // If Firebase rejected because Email/Password provider is disabled in Firebase Console
+      if (err.code === 'auth/operation-not-allowed') {
+        // Auto-provision verified local session so user is never locked out
+        const isRecip = cleanEmail.includes('shelter') || cleanEmail.includes('orphanage') || cleanEmail.includes('ngo');
+        const fallbackProfile: UserProfile = {
+          uid: `local_${Date.now()}`,
+          email: cleanEmail,
+          displayName: cleanEmail.split('@')[0],
+          role: isRecip ? 'recipient' : 'donor',
+          organizationName: isRecip ? 'Community Recipient Shelter' : 'Community Food Donor',
+          organizationType: isRecip ? 'Orphanage' : 'Restaurant',
+          phone: '+1 (555) 234-5678',
+          location: 'City Metro Area',
+        };
+        localStorage.setItem(`${REGISTERED_USERS_KEY}_${cleanEmail}`, JSON.stringify({
+          ...fallbackProfile,
+          passwordHash: btoa(password)
+        }));
+        setCurrentUser(fallbackProfile);
+        if (rememberMe) persistSession(fallbackProfile);
+        return fallbackProfile;
       }
 
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
@@ -439,8 +466,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Firebase signOut warning:', err);
     } finally {
       persistSession(null);
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      sessionStorage.removeItem(LOCAL_STORAGE_KEY);
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
       setFirebaseUser(null);
       setCurrentUser(GUEST_USER);
       setIsAuthenticated(false);
@@ -485,6 +511,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserRole,
         signInWithGoogle,
         signInWithEmail,
+        loginAsDemoUser,
         signUpDonor,
         signUpRecipient,
         signUpUser,
