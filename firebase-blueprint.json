@@ -1,0 +1,165 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Registered user profile with role (donor, recipient organization, or volunteer)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth user identifier" },
+        "email": { "type": "string", "description": "User email address" },
+        "displayName": { "type": "string", "description": "Full name or organization contact name" },
+        "role": { "type": "string", "enum": ["donor", "recipient", "volunteer"], "description": "Primary role of user" },
+        "organizationName": { "type": "string", "description": "Associated organization name if applicable" },
+        "phone": { "type": "string", "description": "Direct contact phone number" },
+        "location": { "type": "string", "description": "General city or neighborhood" },
+        "createdAt": { "type": "string", "description": "Creation ISO timestamp" }
+      },
+      "required": ["uid", "email", "displayName", "role"]
+    },
+    "Organization": {
+      "title": "Organization",
+      "description": "Recipient or donor organization profile details",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "User UID who manages this organization" },
+        "name": { "type": "string", "description": "Organization name" },
+        "type": { "type": "string", "enum": ["Orphanage", "NGO", "Shelter", "Community Kitchen", "Food Bank", "Restaurant", "Canteen", "Hostel"], "description": "Category of organization" },
+        "contactPerson": { "type": "string", "description": "Primary liaison" },
+        "phone": { "type": "string", "description": "Phone number" },
+        "email": { "type": "string", "description": "Official email address" },
+        "location": { "type": "string", "description": "Operating district or city" },
+        "isVerified": { "type": "boolean", "description": "Community or admin verification status" },
+        "createdAt": { "type": "string", "description": "Registration ISO timestamp" }
+      },
+      "required": ["name", "type", "contactPerson", "phone", "email", "location"]
+    },
+    "Donation": {
+      "title": "Donation",
+      "description": "Surplus food listing submitted by a donor",
+      "type": "object",
+      "properties": {
+        "donorId": { "type": "string", "description": "UID of the donor" },
+        "donorName": { "type": "string", "description": "Name or business name of the donor" },
+        "donorType": { "type": "string", "description": "Type of donor e.g. Restaurant, College Canteen, Event, Individual" },
+        "foodName": { "type": "string", "description": "Title of the surplus food" },
+        "description": { "type": "string", "description": "Description of ingredients, freshness, packaging" },
+        "category": { "type": "string", "enum": ["Cooked Meals", "Bakery & Bread", "Fresh Produce", "Dairy & Packaged", "Beverages", "Desserts & Snacks"], "description": "Food category" },
+        "quantity": { "type": "number", "description": "Currently available quantity" },
+        "originalQuantity": { "type": "number", "description": "Original published quantity" },
+        "unit": { "type": "string", "description": "Unit of measurement e.g. kg, meals, boxes, litres" },
+        "pickupLocation": { "type": "string", "description": "Public neighborhood/landmark" },
+        "pickupAddressDetails": { "type": "string", "description": "Specific street address revealed to approved recipients" },
+        "prepTime": { "type": "string", "description": "When the food was cooked or packed" },
+        "deadline": { "type": "string", "description": "Final time food must be collected" },
+        "storageConditions": { "type": "string", "enum": ["Refrigerated", "Room Temperature", "Heated/Insulated", "Frozen"], "description": "Storage requirement" },
+        "allergens": { "type": "string", "description": "Allergens information e.g. Nuts, Dairy, Gluten, None" },
+        "status": { "type": "string", "enum": ["Available", "Reserved", "Completed", "Expired"], "description": "Listing status" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Last update timestamp" }
+      },
+      "required": ["donorId", "donorName", "foodName", "category", "quantity", "unit", "pickupLocation", "deadline", "status"]
+    },
+    "DonationRequest": {
+      "title": "DonationRequest",
+      "description": "Request submitted by a recipient organization to claim surplus food",
+      "type": "object",
+      "properties": {
+        "donationId": { "type": "string", "description": "ID of the target donation" },
+        "foodName": { "type": "string", "description": "Name of the requested food" },
+        "donorId": { "type": "string", "description": "UID of the donation owner" },
+        "donorName": { "type": "string", "description": "Name of the donor" },
+        "donorPhone": { "type": "string", "description": "Donor contact phone number" },
+        "recipientId": { "type": "string", "description": "UID of requesting organization user" },
+        "recipientName": { "type": "string", "description": "Name of recipient organization" },
+        "recipientPhone": { "type": "string", "description": "Recipient contact phone number" },
+        "recipientOrgType": { "type": "string", "description": "Orphanage, NGO, Shelter, etc." },
+        "requestedQuantity": { "type": "number", "description": "Portions or kilograms requested" },
+        "unit": { "type": "string", "description": "Unit matching donation" },
+        "pickupTime": { "type": "string", "description": "Intended collection time" },
+        "notes": { "type": "string", "description": "Coordination notes or beneficiaries served" },
+        "status": { "type": "string", "enum": ["Pending", "Accepted", "Declined", "Cancelled", "Collected", "Completed"], "description": "Request status" },
+        "volunteerId": { "type": "string", "description": "UID of assigned volunteer if any" },
+        "volunteerName": { "type": "string", "description": "Name of assigned volunteer" },
+        "createdAt": { "type": "string", "description": "Request submission timestamp" },
+        "updatedAt": { "type": "string", "description": "Status change timestamp" }
+      },
+      "required": ["donationId", "donorId", "recipientId", "requestedQuantity", "status"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Communication message associated with a donation request",
+      "type": "object",
+      "properties": {
+        "requestId": { "type": "string", "description": "Linked donation request ID" },
+        "senderId": { "type": "string", "description": "UID of the message author" },
+        "senderName": { "type": "string", "description": "Sender display name" },
+        "senderRole": { "type": "string", "enum": ["donor", "recipient", "volunteer"], "description": "Role of the sender" },
+        "text": { "type": "string", "description": "Message content" },
+        "createdAt": { "type": "string", "description": "Timestamp of message" }
+      },
+      "required": ["requestId", "senderId", "senderName", "text", "createdAt"]
+    },
+    "Collection": {
+      "title": "Collection",
+      "description": "Delivery or collection logistics record for accepted donations",
+      "type": "object",
+      "properties": {
+        "requestId": { "type": "string", "description": "Associated request ID" },
+        "donationId": { "type": "string", "description": "Associated donation ID" },
+        "foodName": { "type": "string", "description": "Food item name" },
+        "donorName": { "type": "string", "description": "Donor name" },
+        "recipientName": { "type": "string", "description": "Recipient name" },
+        "volunteerId": { "type": "string", "description": "Assigned volunteer UID" },
+        "volunteerName": { "type": "string", "description": "Assigned volunteer name" },
+        "scheduledTime": { "type": "string", "description": "Agreed handover time" },
+        "status": { "type": "string", "enum": ["Scheduled", "In Transit", "Delivered", "Cancelled"], "description": "Logistics status" },
+        "handoverNotes": { "type": "string", "description": "Proof or confirmation notes" },
+        "createdAt": { "type": "string", "description": "Created timestamp" }
+      },
+      "required": ["requestId", "donationId", "status"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Community food safety or inappropriate listing report",
+      "type": "object",
+      "properties": {
+        "donationId": { "type": "string", "description": "ID of flagged donation" },
+        "reporterId": { "type": "string", "description": "UID of reporting user" },
+        "reason": { "type": "string", "description": "Safety concern, stale food, wrong details, etc." },
+        "details": { "type": "string", "description": "Additional context" },
+        "createdAt": { "type": "string", "description": "Report timestamp" }
+      },
+      "required": ["donationId", "reporterId", "reason"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and contact info"
+    },
+    "/organizations/{orgId}": {
+      "schema": "Organization",
+      "description": "Verified recipient organizations and shelters"
+    },
+    "/donations/{donationId}": {
+      "schema": "Donation",
+      "description": "Public surplus food donation listings"
+    },
+    "/requests/{requestId}": {
+      "schema": "DonationRequest",
+      "description": "Donation reservation and handover requests"
+    },
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Coordination messages between donors, recipients, and volunteers"
+    },
+    "/collections/{collectionId}": {
+      "schema": "Collection",
+      "description": "Transport, pickup and delivery tracking records"
+    },
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Food safety and rule violation reports"
+    }
+  }
+}

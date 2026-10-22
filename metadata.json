@@ -1,0 +1,6 @@
+{
+  "name": "FoodLoop — Surplus Food Rescue Platform",
+  "description": "Connect surplus food donors with shelters, NGOs, and orphanages to share more and waste less.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
