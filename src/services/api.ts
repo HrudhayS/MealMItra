@@ -270,11 +270,12 @@ export const api = {
     return newDonation;
   },
 
-  async updateDonation(id: string, data: Partial<Donation>, user: UserProfile): Promise<Donation> {
+  async updateDonation(id: string, data: Partial<Donation>, user?: UserProfile, isSystemUpdate = false): Promise<Donation> {
     const existing = await this.getDonationById(id);
     if (!existing) throw new Error('Donation not found.');
 
-    if (user && existing.donorId !== user.uid && user.role !== 'admin') {
+    // Only enforce donor ownership check for manual user edits, not automated reservation inventory updates
+    if (!isSystemUpdate && user && existing.donorId !== user.uid && user.role !== 'admin') {
       throw new Error('Unauthorized: You can only edit your own donations.');
     }
 
@@ -404,12 +405,12 @@ export const api = {
       updatedAt: nowIso,
     };
 
-    // Update donation inventory
-    const remaining = donation.quantity - reqQty;
+    // Update donation inventory (deduct claimed portions)
+    const remaining = Math.max(0, donation.quantity - reqQty);
     await this.updateDonation(donation.id, {
       quantity: remaining,
       status: remaining === 0 ? 'Reserved' : 'Available',
-    }, user);
+    }, undefined, true);
 
     // Write request to Firestore
     try {
@@ -459,7 +460,7 @@ export const api = {
           await this.updateDonation(donation.id, {
             quantity: donation.quantity + target.requestedQuantity,
             status: 'Available',
-          }, user || { uid: donation.donorId, role: 'donor' } as any);
+          }, undefined, true);
         }
       } catch (err) {
         console.warn('Could not return portions to donation:', err);
