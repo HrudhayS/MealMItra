@@ -23,7 +23,7 @@ import { HeartHandshake, ShieldCheck, CheckCircle2, Sparkles, ArrowRight } from 
 
 function MainLayout() {
   const { currentUser, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>('welcome');
 
   // Welcome & Custom Login Page Flow for Unauthenticated Visitors
   const [authFlowView, setAuthFlowView] = useState<'welcome' | 'login'>('welcome');

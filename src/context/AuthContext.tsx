@@ -218,8 +218,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: any) {
       console.error('Google Sign-in failed:', err);
       if (err.code === 'auth/unauthorized-domain') {
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'your-domain.vercel.app';
         throw new Error(
-          'Firebase Unauthorized Domain (auth/unauthorized-domain): "meal-mitra.vercel.app" is not authorized in Firebase Console. Please add "meal-mitra.vercel.app" to Firebase Console → Authentication → Settings → Authorized domains. You can also sign in below using Email/Password or the Quick-Access Demo buttons.'
+          `Firebase Unauthorized Domain (auth/unauthorized-domain): "${currentHost}" is not authorized in Firebase Console. Please add "${currentHost}" to Firebase Console → Authentication → Settings → Authorized domains. You can also sign in below using Email/Password or the Quick-Access Demo buttons.`
         );
       }
       if (err.code === 'auth/popup-closed-by-user') {

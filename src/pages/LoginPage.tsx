@@ -451,7 +451,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       <span>Production Deployment Setup Tip:</span>
                     </div>
                     <ol className="list-decimal list-inside space-y-1 text-stone-600">
-                      <li>For Google Sign-In: Add <strong>meal-mitra.vercel.app</strong> to Firebase Console → Authentication → Settings → Authorized domains.</li>
+                      <li>For Google Sign-In: Add <strong>{typeof window !== 'undefined' ? window.location.hostname : 'your-domain.vercel.app'}</strong> to Firebase Console → Authentication → Settings → Authorized domains.</li>
                       <li>For Email/Password: Enable <strong>Email/Password</strong> provider in Firebase Console → Authentication → Sign-in method.</li>
                     </ol>
                     <p className="font-semibold text-emerald-800 pt-1">
