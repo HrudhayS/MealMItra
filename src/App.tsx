@@ -9,7 +9,6 @@ import { DonorWindow } from './pages/DonorWindow';
 import { MyListings } from './pages/MyListings';
 import { MyRequests } from './pages/MyRequests';
 import { VolunteerDispatch } from './pages/VolunteerDispatch';
-import { OrganizationsPage } from './pages/OrganizationsPage';
 import { FoodSafetyPage } from './pages/FoodSafetyPage';
 import { AuthModal } from './components/AuthModal';
 import { CreateDonationModal } from './components/CreateDonationModal';
@@ -307,8 +306,6 @@ function MainLayout() {
                 <VolunteerDispatch onOpenMessages={handleOpenMessages} />
               )}
 
-              {currentUser.role !== 'donor' && activeTab === 'organizations' && <OrganizationsPage />}
-
               {activeTab === 'safety' && <FoodSafetyPage />}
             </main>
           </div>
@@ -333,9 +330,6 @@ function MainLayout() {
             </button>
             <button onClick={() => setActiveTab('safety')} className="hover:text-[#344E41] transition-colors">
               Food Safety Guidelines
-            </button>
-            <button onClick={() => setActiveTab('organizations')} className="hover:text-[#344E41] transition-colors">
-              Verified Shelters
             </button>
             {!isAuthenticated && (
               <div className="flex items-center gap-2">

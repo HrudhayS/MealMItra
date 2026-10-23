@@ -42,53 +42,8 @@ function saveLocalCache<T>(key: string, items: T[]) {
   }
 }
 
-// Verified Community Shelters Directory
-const DEFAULT_ORGANIZATIONS: OrganizationInfo[] = [
-  {
-    name: 'Hope City Night Shelter & Children Home',
-    type: 'Orphanage & Children Home',
-    contactPerson: 'Sister Clara Jenkins',
-    phone: '+1 (555) 789-0123',
-    email: 'coordinator@hopecityshelter.org',
-    location: '45 Mission Way, Eastside Community Center',
-    isVerified: true,
-    beneficiaries: 120,
-    description: 'Provides daily nutritious evening meals and safe shelter for orphaned children and vulnerable families.'
-  },
-  {
-    name: 'Grace Elder Haven',
-    type: 'Senior Support Home',
-    contactPerson: 'David Miller',
-    phone: '+1 (555) 456-7890',
-    email: 'intake@graceelderhaven.org',
-    location: '88 Oakridge Lane, North District',
-    isVerified: true,
-    beneficiaries: 75,
-    description: 'Residential assisted living home serving seniors and elderly community members.'
-  },
-  {
-    name: 'Sunrise Community Kitchen & Langar',
-    type: 'Free Community Kitchen',
-    contactPerson: 'Harpreet Singh',
-    phone: '+1 (555) 234-9988',
-    email: 'kitchen@sunriselangar.org',
-    location: '12 West Market St, Downtown',
-    isVerified: true,
-    beneficiaries: 250,
-    description: 'Zero-barrier hot meal kitchen serving warm meals twice daily to anyone in need.'
-  },
-  {
-    name: 'St. Jude Youth Haven',
-    type: 'Youth Shelter',
-    contactPerson: 'Marcus Thorne',
-    phone: '+1 (555) 890-1234',
-    email: 'shelter@stjudeyouth.org',
-    location: '302 Riverside Boulevard',
-    isVerified: true,
-    beneficiaries: 65,
-    description: 'Safe haven and emergency food support for runaways and unhoused young adults.'
-  }
-];
+// Shelters directory (confidential listings removed)
+const DEFAULT_ORGANIZATIONS: OrganizationInfo[] = [];
 
 export const api = {
   // 1. DASHBOARD & IMPACT METRICS

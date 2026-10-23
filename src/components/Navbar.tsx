@@ -184,18 +184,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
 
             <button
-              onClick={() => setActiveTab('organizations')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'organizations'
-                  ? 'bg-[#344E41] text-white shadow-xs'
-                  : 'text-[#373A36]/80 hover:bg-[#E5EFE5]/80 hover:text-[#344E41]'
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5 text-[#8BAF92]" />
-              <span>Shelters</span>
-            </button>
-
-            <button
               onClick={() => setActiveTab('safety')}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'safety'
@@ -354,13 +342,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               My Requests & Pickups
             </button>
           )}
-
-          <button
-            onClick={() => { setActiveTab('organizations'); setMobileMenuOpen(false); }}
-            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${activeTab === 'organizations' ? 'bg-[#344E41] text-white' : 'text-[#373A36]'}`}
-          >
-            Verified Shelters
-          </button>
 
           <button
             onClick={() => { setActiveTab('safety'); setMobileMenuOpen(false); }}
